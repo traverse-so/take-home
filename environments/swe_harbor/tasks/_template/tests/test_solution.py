@@ -1,14 +1,6 @@
 # TODO: Write pytest test cases that verify the solution.
 #
 # All tests run against the Healthchecks Django app at /app.
-# Import the Django test infrastructure:
-#
-#   import os, django
-#   os.environ.setdefault("DJANGO_SETTINGS_MODULE", "hc.settings")
-#   django.setup()
-#
-#   from hc.api.models import Check, Channel, Ping, Flip
-#   from hc.test import BaseTestCase
 #
 # Tips:
 #   - Extend BaseTestCase for pre-built users/projects/API keys
@@ -25,6 +17,9 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "hc.settings")
 django.setup()
 
+from hc.test import BaseTestCase
 
-def test_placeholder():
-    assert False, "Replace this with your actual tests"
+
+class PlaceholderTestCase(BaseTestCase):
+    def test_placeholder(self):
+        self.fail("Replace this with your actual tests")

@@ -99,7 +99,7 @@ Avoid:
 - Tests so loose the agent can stumble into passing
 - Single-function tasks
 
-**Scope:** Hard enough that current frontier models can't trivially solve them. Think 1-2 hours of focused engineering work.
+**Scope:** Think 1-2 hours of focused engineering work. Tasks should require reading and understanding existing code, not just writing new code in isolation.
 
 ## Running the Environment
 
