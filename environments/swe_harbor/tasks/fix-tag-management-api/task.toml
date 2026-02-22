@@ -1,0 +1,15 @@
+version = "1.0"
+
+[metadata]
+# TODO: Fill in your details
+author_name = ""
+author_email = ""
+difficulty = "easy"        # easy | medium | hard
+category = "programming"
+tags = []                  # e.g. ["python", "django", "rest-api"]
+
+[verifier]
+timeout_sec = 180.0
+
+[agent]
+timeout_sec = 900.0
