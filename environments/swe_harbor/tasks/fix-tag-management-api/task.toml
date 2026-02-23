@@ -1,12 +1,11 @@
 version = "1.0"
 
 [metadata]
-# TODO: Fill in your details
-author_name = ""
-author_email = ""
-difficulty = "easy"        # easy | medium | hard
+author_name = "Isabella Lu"
+author_email = "isabella@example.com"
+difficulty = "medium"
 category = "programming"
-tags = []                  # e.g. ["python", "django", "rest-api"]
+tags = ["python", "django", "rest-api", "debugging", "multi-file"]
 
 [verifier]
 timeout_sec = 180.0
