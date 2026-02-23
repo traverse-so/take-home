@@ -19,6 +19,7 @@ mkdir -p /logs/verifier
 # Run migrations in case the solution created new ones
 python manage.py migrate --run-syncdb > /dev/null 2>&1
 
+PYTHONWARNINGS=ignore::DeprecationWarning \
 PYTHONPATH=/app DJANGO_SETTINGS_MODULE=hc.settings pytest /tests/test_solution.py -v 2>&1
 
 if [ $? -eq 0 ]; then

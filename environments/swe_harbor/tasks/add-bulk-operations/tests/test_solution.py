@@ -329,3 +329,45 @@ class BulkRoutingAcrossVersionsTestCase(BaseTestCase):
     def test_v3_route(self):
         r = self.post("/api/v3/checks/bulk/")
         self.assertEqual(r.status_code, 200)
+
+
+class BulkMultiStepIntegrationTestCase(BaseTestCase):
+    """Runs multiple bulk actions back-to-back to stress state transitions."""
+
+    def setUp(self):
+        super().setUp()
+        self.url = "/api/v3/checks/bulk/"
+        self.c1 = Check.objects.create(project=self.project, name="I1", status="up")
+        self.c2 = Check.objects.create(project=self.project, name="I2", status="up")
+
+    def post(self, payload: dict):
+        return self.client.post(
+            self.url,
+            json.dumps({**payload, "api_key": "X" * 32}),
+            content_type="application/json",
+        )
+
+    def test_pause_then_tag_then_resume(self):
+        pause = self.post({"action": "pause", "checks": [str(self.c1.code), str(self.c2.code)]})
+        self.assertEqual(pause.status_code, 200)
+        self.assertEqual(pause.json()["applied"], 2)
+
+        add_tags = self.post(
+            {
+                "action": "add_tags",
+                "checks": [str(self.c1.code), str(self.c2.code)],
+                "tags": "prod deploy",
+            }
+        )
+        self.assertEqual(add_tags.status_code, 200)
+
+        resume = self.post({"action": "resume", "checks": [str(self.c1.code), str(self.c2.code)]})
+        self.assertEqual(resume.status_code, 200)
+        self.assertEqual(resume.json()["applied"], 2)
+
+        self.c1.refresh_from_db()
+        self.c2.refresh_from_db()
+        self.assertEqual(self.c1.status, "new")
+        self.assertEqual(self.c2.status, "new")
+        self.assertEqual(self.c1.tags, "prod deploy")
+        self.assertEqual(self.c2.tags, "prod deploy")

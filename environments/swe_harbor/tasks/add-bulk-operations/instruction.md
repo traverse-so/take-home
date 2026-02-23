@@ -101,3 +101,15 @@ Add to the `api_urls` list:
 - Follow existing patterns for decorators, error responses, etc.
 - The `pause` and `resume` logic must match the existing single-check endpoints exactly (flip creation, field resets, nag date updates)
 - Do not skip checks silently — validate ALL checks belong to the project before proceeding
+
+## Non-goals
+
+- Do not add new action types.
+- Do not change existing single-check endpoints.
+- Do not change tag storage format (keep space-separated `Check.tags`).
+
+## Why this is hard
+
+- Correctness depends on matching existing pause/resume side effects, not just status values.
+- Validation must happen before modifications, then operation must run atomically.
+- Route ordering matters (`checks/bulk/` must not be shadowed by `checks/<uuid:code>`).

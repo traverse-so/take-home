@@ -100,3 +100,15 @@ Important:
 - Don't modify existing tests.
 - Follow existing patterns for decorators, permission checks, and JSON error responses.
 - Keep all tag operations strictly project-scoped (no cross-project tag leakage).
+
+## Non-goals
+
+- Do not redesign tag storage away from the existing `Check.tags` string field.
+- Do not change unrelated check filtering/search behavior.
+- Do not add new auth schemes; use existing key-based auth/decorators.
+
+## Why this is hard
+
+- The task mixes normalization, validation, permissions, and URL routing (`<quoted:tag>`) across files.
+- Deduplication must preserve order and still keep API/project aggregation correct.
+- Cross-project leakage bugs are easy to introduce if queryset scoping is not exact.

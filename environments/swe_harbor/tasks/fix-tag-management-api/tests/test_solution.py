@@ -285,3 +285,37 @@ class TagRoutesAcrossVersionsTestCase(BaseTestCase):
     def test_v3_project_tags_route(self):
         r = self.client.get("/api/v3/tags/", HTTP_X_API_KEY="X" * 32)
         self.assertEqual(r.status_code, 200)
+
+
+class TagLifecycleIntegrationTestCase(BaseTestCase):
+    """Checks add/remove/re-add behavior and aggregate updates."""
+
+    def setUp(self):
+        super().setUp()
+        self.check = Check.objects.create(project=self.project, name="Life", tags="alpha")
+
+    def post(self, tag: str):
+        return self.client.post(
+            f"/api/v3/checks/{self.check.code}/tags/{tag}/",
+            json.dumps({"api_key": "X" * 32}),
+            content_type="application/json",
+            HTTP_X_API_KEY="X" * 32,
+        )
+
+    def delete(self, tag: str):
+        return self.client.delete(
+            f"/api/v3/checks/{self.check.code}/tags/{tag}/",
+            HTTP_X_API_KEY="X" * 32,
+        )
+
+    def test_add_remove_readd_updates_counts_without_duplicates(self):
+        self.assertEqual(self.post("deploy").status_code, 201)
+        self.assertEqual(self.delete("deploy").status_code, 204)
+        self.assertEqual(self.post("deploy").status_code, 201)
+        self.assertEqual(self.post("deploy").status_code, 200)
+
+        self.check.refresh_from_db()
+        self.assertEqual(self.check.tags, "alpha deploy")
+
+        tags = self.client.get("/api/v3/tags/", HTTP_X_API_KEY="X" * 32).json()["tags"]
+        self.assertEqual(tags, [{"name": "alpha", "count": 1}, {"name": "deploy", "count": 1}])

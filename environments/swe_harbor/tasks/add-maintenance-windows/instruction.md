@@ -97,3 +97,15 @@ Add to the `api_urls` list (works across v1/v2/v3 automatically):
 - Follow existing patterns for decorators, error responses, etc.
 - The maintenance status check in `get_status()` must use a DB query against `MaintenanceWindow`, not a cached value
 - `in_maintenance` in `to_dict()` should be evaluated independently (even paused/new checks can be in maintenance)
+
+## Non-goals
+
+- Do not modify unrelated API endpoints.
+- Do not change existing check pause/resume semantics.
+- Do not add frontend/UI changes.
+
+## Why this is hard
+
+- The change couples model status logic (`Check.get_status`) with API behavior (`to_dict()` + endpoints).
+- The overlap check and half-open interval rule (`start <= t < end`) have boundary traps.
+- A partial implementation can look correct in one surface but fail in another (model, API, routing).

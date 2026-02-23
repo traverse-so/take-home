@@ -470,3 +470,41 @@ class MaintenanceUrlRoutingTestCase(BaseTestCase):
         r = self.client.options("/api/v3/maintenance/")
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r["Access-Control-Allow-Origin"], "*")
+
+
+class MaintenanceLifecycleIntegrationTestCase(BaseTestCase):
+    """Cross-surface lifecycle check: create -> observe -> delete."""
+
+    def setUp(self):
+        super().setUp()
+        # "down" avoids simple/up invariant requiring last_ping in to_dict().
+        self.check = Check.objects.create(project=self.project, name="Lifecycle", status="down")
+
+    def test_status_and_serialization_change_after_create_and_delete(self):
+        start = (now() - td(minutes=30)).isoformat()
+        end = (now() + td(minutes=30)).isoformat()
+        create = self.client.post(
+            "/api/v3/maintenance/",
+            json.dumps(
+                {
+                    "api_key": "X" * 32,
+                    "title": "Deploy",
+                    "start_time": start,
+                    "end_time": end,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(create.status_code, 201)
+        code = create.json()["uuid"]
+
+        self.check.refresh_from_db()
+        self.assertEqual(self.check.get_status(), "maintenance")
+        self.assertTrue(self.check.to_dict()["in_maintenance"])
+
+        delete = self.client.delete(f"/api/v3/maintenance/{code}/", HTTP_X_API_KEY="X" * 32)
+        self.assertEqual(delete.status_code, 204)
+
+        self.check.refresh_from_db()
+        self.assertEqual(self.check.get_status(), "down")
+        self.assertFalse(self.check.to_dict()["in_maintenance"])
