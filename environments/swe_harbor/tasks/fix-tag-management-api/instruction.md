@@ -8,6 +8,12 @@ A recent refactor attempted to add explicit tag-management endpoints, but the im
 
 This is intentionally a **debug/fix** style task: you must preserve existing check behavior while adding correct tag-management primitives and endpoints.
 
+## Files expected to change
+
+- `/app/hc/api/models.py`
+- `/app/hc/api/views.py`
+- `/app/hc/api/urls.py`
+
 ## 1. Model helper methods (`/app/hc/api/models.py`)
 
 Extend `Check` with helper methods right around the existing `tags_list()` / `matches_tag_set()` logic:
@@ -94,6 +100,24 @@ path("tags/", views.project_tags, name="hc-api-project-tags"),
 Important:
 - Use `<quoted:tag>` (QuoteConverter already exists in this file).
 - This must support URL-encoded tag values.
+
+## Acceptance Criteria
+
+- Required routes exist and are reachable under `/api/v1/`, `/api/v2/`, `/api/v3/`:
+  - `GET /checks/<uuid>/tags/`
+  - `POST /checks/<uuid>/tags/<quoted:tag>/`
+  - `DELETE /checks/<uuid>/tags/<quoted:tag>/`
+  - `GET /tags/`
+- Helper methods are present and behave as specified:
+  - `clean_tags()` de-duplicates while preserving order
+  - `add_tag()` and `remove_tag()` return boolean change indicators
+- Validation and response semantics are exact:
+  - invalid tag -> `400` with `{"error": "invalid tag"}`
+  - missing tag on remove -> `404` with `{"error": "tag not found"}`
+  - max-tags / max-length constraints enforced
+- Project-level tag listing is strictly scoped to authenticated project and supports prefix filter.
+- URL-encoded tags are supported through `<quoted:tag>`.
+- Handled validation and permission errors must return JSON in the form `{"error": "<message>"}`.
 
 ## Constraints
 

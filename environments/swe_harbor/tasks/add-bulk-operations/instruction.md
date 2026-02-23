@@ -6,6 +6,12 @@ The Healthchecks codebase is at `/app/`. It's a Django app for monitoring cron j
 
 Add an API endpoint for performing bulk operations on multiple checks at once: pause, resume, delete, and tag management. All operations must be **atomic** — if any check fails validation (doesn't exist, wrong project, etc.), the entire operation must be rolled back with no partial changes.
 
+## Files expected to change
+
+- `/app/hc/api/models.py`
+- `/app/hc/api/views.py`
+- `/app/hc/api/urls.py`
+
 ## 1. `Check.bulk_tags_add()` and `Check.bulk_tags_remove()` helpers (`/app/hc/api/models.py`)
 
 Add two helper methods to the `Check` model:
@@ -92,6 +98,23 @@ Add to the `api_urls` list:
     path("checks/bulk/", views.bulk_checks, name="hc-api-bulk"),
 
 **Important**: This route must be placed **before** the existing `path("checks/<uuid:code>", ...)` route so Django doesn't try to interpret `"bulk"` as a UUID.
+
+## Acceptance Criteria
+
+- Required route exists and is reachable under `/api/v1/`, `/api/v2/`, `/api/v3/`:
+  - `POST /checks/bulk/`
+- Route ordering is correct (`checks/bulk/` is not shadowed by `checks/<uuid:code>`).
+- All validation runs before any modification is applied.
+- For invalid input, endpoint returns expected status:
+  - `400`: invalid action/list/uuid/limit/missing tags
+  - `403`: cross-project check(s)
+  - `404`: missing check(s)
+- Operation is atomic for all actions (`pause`, `resume`, `delete`, `add_tags`, `remove_tags`).
+- Pause/resume side effects match existing single-check endpoints:
+  - correct flips
+  - correct field resets
+  - nag-date updates for pause path
+- Handled validation and permission errors must return JSON in the form `{"error": "<message>"}`.
 
 ## Constraints
 

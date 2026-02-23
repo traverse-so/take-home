@@ -19,6 +19,12 @@ from hc.api.models import Check
 from hc.test import BaseTestCase
 
 
+def assert_json_error(testcase, response, status_code: int, expected_error: str):
+    testcase.assertEqual(response.status_code, status_code)
+    testcase.assertEqual(response.get("Content-Type"), "application/json")
+    testcase.assertEqual(response.json()["error"], expected_error)
+
+
 class TagHelperModelTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
@@ -114,18 +120,15 @@ class AddTagApiTestCase(BaseTestCase):
 
     def test_add_invalid_tag_with_space(self):
         r = self.post("bad%25tag")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "invalid tag")
+        assert_json_error(self, r, 400, "invalid tag")
 
     def test_add_invalid_tag_with_symbol(self):
         r = self.post("%25")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "invalid tag")
+        assert_json_error(self, r, 400, "invalid tag")
 
     def test_add_invalid_tag_too_long(self):
         r = self.post("x" * 51)
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "invalid tag")
+        assert_json_error(self, r, 400, "invalid tag")
 
     def test_add_forbidden_for_other_project(self):
         other = Check.objects.create(project=self.bobs_project, name="Bob")
@@ -157,8 +160,7 @@ class AddTagApiTestCase(BaseTestCase):
         self.check.tags = " ".join(tags)
         self.check.save(update_fields=["tags"])
         r = self.post("newtag")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "too many tags")
+        assert_json_error(self, r, 400, "too many tags")
 
     def test_add_rejects_result_longer_than_500_chars(self):
         tags = [f"t{i}{'x' * 47}" for i in range(10)]
@@ -166,8 +168,7 @@ class AddTagApiTestCase(BaseTestCase):
         self.check.tags = " ".join(tags)
         self.check.save(update_fields=["tags"])
         r = self.post("z")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "tags field is too long")
+        assert_json_error(self, r, 400, "tags field is too long")
 
     def test_add_supports_url_encoded_tag(self):
         encoded = quote("v1~blue", safe="")
@@ -193,13 +194,11 @@ class RemoveTagApiTestCase(BaseTestCase):
 
     def test_remove_missing_tag_returns_404(self):
         r = self.delete("missing")
-        self.assertEqual(r.status_code, 404)
-        self.assertEqual(r.json()["error"], "tag not found")
+        assert_json_error(self, r, 404, "tag not found")
 
     def test_remove_invalid_tag(self):
         r = self.delete("%25")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "invalid tag")
+        assert_json_error(self, r, 400, "invalid tag")
 
     def test_remove_forbidden_for_other_project(self):
         other = Check.objects.create(project=self.bobs_project, name="Bob", tags="alpha")

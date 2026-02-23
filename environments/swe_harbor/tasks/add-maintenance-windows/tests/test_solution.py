@@ -5,7 +5,6 @@ import json
 import uuid
 from datetime import timedelta as td
 
-from django.test.utils import override_settings
 from django.utils.timezone import now
 
 import os
@@ -17,6 +16,12 @@ django.setup()
 
 from hc.api.models import Check
 from hc.test import BaseTestCase
+
+
+def assert_json_error(testcase, response, status_code: int, message_substring: str):
+    testcase.assertEqual(response.status_code, status_code)
+    testcase.assertEqual(response.get("Content-Type"), "application/json")
+    testcase.assertIn(message_substring, response.json()["error"].lower())
 
 
 class MaintenanceWindowModelTestCase(BaseTestCase):
@@ -158,16 +163,14 @@ class CreateMaintenanceWindowApiTestCase(BaseTestCase):
         start = (now() + td(hours=5)).isoformat()
         end = (now() + td(hours=1)).isoformat()
         r = self.post({"title": "Test", "start_time": start, "end_time": end})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("before", r.json()["error"].lower())
+        assert_json_error(self, r, 400, "before")
 
     def test_duration_exceeds_7_days(self):
         """POST with window > 7 days should return 400."""
         start = (now() + td(hours=1)).isoformat()
         end = (now() + td(days=8)).isoformat()
         r = self.post({"title": "Long", "start_time": start, "end_time": end})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("7 days", r.json()["error"].lower())
+        assert_json_error(self, r, 400, "7 days")
 
     def test_overlapping_windows(self):
         """POST should reject windows that overlap with existing ones."""
@@ -181,8 +184,7 @@ class CreateMaintenanceWindowApiTestCase(BaseTestCase):
         start = (base + td(hours=1)).isoformat()
         end = (base + td(hours=5)).isoformat()
         r = self.post({"title": "Overlap", "start_time": start, "end_time": end})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("overlapping", r.json()["error"].lower())
+        assert_json_error(self, r, 400, "overlapping")
 
     def test_adjacent_windows_no_overlap(self):
         """Adjacent (non-overlapping) windows should be allowed."""
@@ -211,8 +213,7 @@ class CreateMaintenanceWindowApiTestCase(BaseTestCase):
         start = (now() + td(hours=1)).isoformat()
         end = (now() + td(hours=2)).isoformat()
         r = self.post({"title": "One too many", "start_time": start, "end_time": end})
-        self.assertEqual(r.status_code, 403)
-        self.assertIn("too many", r.json()["error"].lower())
+        assert_json_error(self, r, 403, "too many")
 
 class ListMaintenanceWindowsApiTestCase(BaseTestCase):
     """Tests for GET /api/v3/maintenance/"""

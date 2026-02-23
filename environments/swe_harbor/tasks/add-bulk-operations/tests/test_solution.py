@@ -19,6 +19,12 @@ from hc.api.models import Check, Flip
 from hc.test import BaseTestCase
 
 
+def assert_json_error(testcase, response, status_code: int, expected_error: str):
+    testcase.assertEqual(response.status_code, status_code)
+    testcase.assertEqual(response.get("Content-Type"), "application/json")
+    testcase.assertEqual(response.json()["error"], expected_error)
+
+
 class BulkTagHelperModelTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
@@ -57,18 +63,15 @@ class BulkValidationApiTestCase(BaseTestCase):
 
     def test_rejects_invalid_action(self):
         r = self.post({"action": "noop", "checks": [str(self.check.code)]})
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "invalid action")
+        assert_json_error(self, r, 400, "invalid action")
 
     def test_rejects_checks_not_list(self):
         r = self.post({"action": "pause", "checks": "not-a-list"})
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "checks must be a list")
+        assert_json_error(self, r, 400, "checks must be a list")
 
     def test_rejects_empty_checks(self):
         r = self.post({"action": "pause", "checks": []})
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "checks must not be empty")
+        assert_json_error(self, r, 400, "checks must not be empty")
 
     def test_rejects_more_than_50_checks(self):
         checks = [str(uuid.uuid4()) for _ in range(51)]
@@ -78,29 +81,24 @@ class BulkValidationApiTestCase(BaseTestCase):
 
     def test_rejects_invalid_uuid(self):
         r = self.post({"action": "pause", "checks": ["not-a-uuid"]})
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "invalid check uuid")
+        assert_json_error(self, r, 400, "invalid check uuid")
 
     def test_rejects_nonexistent_check(self):
         r = self.post({"action": "pause", "checks": [str(uuid.uuid4())]})
-        self.assertEqual(r.status_code, 404)
-        self.assertEqual(r.json()["error"], "check not found")
+        assert_json_error(self, r, 404, "check not found")
 
     def test_rejects_check_from_other_project(self):
         other_check = Check.objects.create(project=self.bobs_project, name="Bob")
         r = self.post({"action": "pause", "checks": [str(other_check.code)]})
-        self.assertEqual(r.status_code, 403)
-        self.assertEqual(r.json()["error"], "check does not belong to this project")
+        assert_json_error(self, r, 403, "check does not belong to this project")
 
     def test_rejects_missing_tags_for_add_tags(self):
         r = self.post({"action": "add_tags", "checks": [str(self.check.code)]})
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "tags is required")
+        assert_json_error(self, r, 400, "tags is required")
 
     def test_rejects_missing_tags_for_remove_tags(self):
         r = self.post({"action": "remove_tags", "checks": [str(self.check.code)], "tags": "  "})
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.json()["error"], "tags is required")
+        assert_json_error(self, r, 400, "tags is required")
 
     def test_wrong_api_key(self):
         r = self.post({"action": "pause", "checks": [str(self.check.code)]}, api_key="Y" * 32)
