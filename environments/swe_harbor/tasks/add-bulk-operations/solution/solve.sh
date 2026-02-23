@@ -75,11 +75,7 @@ def bulk_checks(request: ApiRequest) -> HttpResponse:
         try:
             check = Check.objects.get(code=check_uuid)
         except Check.DoesNotExist:
-            return HttpResponseNotFound(
-                JsonResponse({"error": "check not found"}, status=404).content,
-                content_type="application/json",
-                status=404,
-            )
+            return JsonResponse({"error": "check not found"}, status=404)
 
         if check.project_id != request.project.id:
             return JsonResponse(

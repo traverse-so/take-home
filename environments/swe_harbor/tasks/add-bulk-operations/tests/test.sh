@@ -1,6 +1,17 @@
 #!/bin/bash
 cd /app
 
+# Bootstrap minimal hc.logs app required by hc.settings
+mkdir -p /app/hc/logs
+cat > /app/hc/logs/__init__.py << 'PYEOF'
+import logging
+
+
+class Handler(logging.Handler):
+    def emit(self, record):
+        return
+PYEOF
+
 pip install pytest > /dev/null 2>&1
 
 mkdir -p /logs/verifier
